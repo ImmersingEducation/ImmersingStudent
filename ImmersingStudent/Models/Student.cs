@@ -13,27 +13,27 @@ public sealed record Student(string Id, string Name, int IdInClass, Gender Gende
     /// <summary>
     /// 学生学号
     /// </summary>
-    public required string Id { get; set; } = Id;
+    public string Id { get; set; } = Id;
 
     /// <summary>
     /// 学生姓名
     /// </summary>
-    public required string Name { get; set; } = Name;
+    public string Name { get; set; } = Name;
 
     /// <summary>
     /// 学生在班内的学号
     /// </summary>
-    public required int IdInClass { get; set; } = IdInClass;
+    public int IdInClass { get; set; } = IdInClass;
 
     /// <summary>
     /// 学生性别
     /// </summary>
-    public required Gender Gender { get; set; } = Gender;
+    public Gender Gender { get; set; } = Gender;
     
     /// <summary>
     /// 扩展属性
     /// </summary>
-    public required List<ExtraProperty>  ExtraProperties { get; set; } = ExtraProperties;
+    public List<ExtraProperty>  ExtraProperties { get; set; } = ExtraProperties;
 }
 
 

@@ -13,28 +13,28 @@ public sealed record Class(Grade Grade, string NameWithoutGrade, List<Student> S
     /// <summary>
     /// 年级
     /// </summary>
-    public required Grade Grade { get; set; } = Grade;
+    public Grade Grade { get; set; } = Grade;
 
     /// <summary>
     /// 不含年级的班级名称
     /// </summary>
-    public required string NameWithoutGrade { get; set; } = NameWithoutGrade;
+    public string NameWithoutGrade { get; set; } = NameWithoutGrade;
     
     
     /// <summary>
     /// 学生列表
     /// </summary>
-    public required List<Student> Students { get; set; } =  Students;
+    public List<Student> Students { get; set; } =  Students;
     
     /// <summary>
     /// 分组规则
     /// </summary>
-    public required List<GroupingRule> GroupingRules { get; set; } =  GroupingRules;
+    public List<GroupingRule> GroupingRules { get; set; } =  GroupingRules;
 
     /// <summary>
     /// 扩展属性
     /// </summary>
-    public required List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
+    public List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
 }
 
 /// <summary>

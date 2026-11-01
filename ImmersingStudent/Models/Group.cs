@@ -8,20 +8,20 @@ public sealed record Group(string Name, List<Guid> StudentGuids, List<ExtraPrope
     /// <summary>
     /// 小组 Guid
     /// </summary>
-    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid Guid { get; init; } = Guid.NewGuid();
 
     /// <summary>
     /// 小组名称
     /// </summary>
-    public required string Name { get; set; } = Name;
+    public string Name { get; set; } = Name;
     
     /// <summary>
     /// 小组成员的 Guid
     /// </summary>
-    public required List<Guid> StudentGuids { get; set; } = StudentGuids;
+    public List<Guid> StudentGuids { get; set; } = StudentGuids;
     
     /// <summary>
     /// 扩展属性
     /// </summary>
-    public required List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
+    public List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
 }
