@@ -3,7 +3,7 @@ namespace ImmersingStudent.Models;
 /// <summary>
 /// 分组规则
 /// </summary>
-public sealed record GroupingRule(string Name, List<Group> Groups)
+public sealed record GroupingRule(string Name, List<Group> Groups, List<ExtraProperty> ExtraProperties)
 {
     /// <summary>
     /// 规则 Guid
@@ -19,4 +19,9 @@ public sealed record GroupingRule(string Name, List<Group> Groups)
     /// 规则内小组
     /// </summary>
     public required List<Group> Groups { get; set; } = Groups;
+    
+    /// <summary>
+    /// 扩展属性
+    /// </summary>
+    public required List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
 }

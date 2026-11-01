@@ -3,7 +3,7 @@ namespace ImmersingStudent.Models;
 /// <summary>
 /// 学生信息
 /// </summary>
-public sealed record Student(string Id, string Name, int IdInClass, Gender Gender)
+public sealed record Student(string Id, string Name, int IdInClass, Gender Gender, List<ExtraProperty> ExtraProperties)
 {
     /// <summary>
     /// 学生 Guid
@@ -29,6 +29,11 @@ public sealed record Student(string Id, string Name, int IdInClass, Gender Gende
     /// 学生性别
     /// </summary>
     public required Gender Gender { get; set; } = Gender;
+    
+    /// <summary>
+    /// 扩展属性
+    /// </summary>
+    public required List<ExtraProperty>  ExtraProperties { get; set; } = ExtraProperties;
 }
 
 

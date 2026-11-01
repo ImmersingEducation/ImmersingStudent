@@ -3,7 +3,7 @@ namespace ImmersingStudent.Models;
 /// <summary>
 /// 班级信息
 /// </summary>
-public sealed record Class(Grade Grade, string NameWithoutGrade, List<Student> Students, List<GroupingRule> GroupingRules)
+public sealed record Class(Grade Grade, string NameWithoutGrade, List<Student> Students, List<GroupingRule> GroupingRules, List<ExtraProperty> ExtraProperties)
 {
     /// <summary>
     /// 班级 Guid
@@ -30,6 +30,11 @@ public sealed record Class(Grade Grade, string NameWithoutGrade, List<Student> S
     /// 分组规则
     /// </summary>
     public required List<GroupingRule> GroupingRules { get; set; } =  GroupingRules;
+
+    /// <summary>
+    /// 扩展属性
+    /// </summary>
+    public required List<ExtraProperty> ExtraProperties { get; set; } = ExtraProperties;
 }
 
 /// <summary>
