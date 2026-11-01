@@ -11,10 +11,11 @@ internal sealed class ClassStore
 {
     private readonly IDataSource _dataSource;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly AsyncReaderWriterLock _stateLock = new();
     private readonly object _dirtySync = new();
     private readonly object _locksSync = new();
     private readonly Dictionary<Guid, Class> _classes = [];
-    private readonly Dictionary<Guid, SemaphoreSlim> _classLocks = [];
+    private readonly Dictionary<Guid, LockEntry> _classLocks = [];
     private readonly HashSet<Guid> _dirty = [];
     private readonly HashSet<Guid> _pendingDeletes = [];
     private readonly HashSet<Guid> _neverSaved = [];
@@ -26,13 +27,60 @@ internal sealed class ClassStore
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// 获取共享读锁。查询操作可以并发进行。
+    /// </summary>
+    public Task<IDisposable> LockReadAsync(CancellationToken cancellationToken)
+    {
+        return _stateLock.EnterReadAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// 获取全局写锁。修改、Reload 等需要独占缓存的操作使用。
+    /// </summary>
+    public Task<IDisposable> LockWriteAsync(CancellationToken cancellationToken)
+    {
+        return _stateLock.EnterWriteAsync(cancellationToken);
+    }
+
+    public bool HasDirtyClasses
+    {
+        get
+        {
+            lock (_dirtySync)
+            {
+                return _dirty.Count > 0;
+            }
+        }
+    }
+
+    internal int ClassLockCount
+    {
+        get
+        {
+            lock (_locksSync)
+            {
+                return _classLocks.Count;
+            }
+        }
+    }
+
     public async Task<IReadOnlyList<Class>> GetClassesAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await EnsureAllLoadedCoreAsync(cancellationToken).ConfigureAwait(false);
-            return _classes.Values.ToList();
+
+            HashSet<Guid> pendingDeletes;
+            lock (_dirtySync)
+            {
+                pendingDeletes = [.. _pendingDeletes];
+            }
+
+            return _classes.Values
+                .Where(@class => !pendingDeletes.Contains(@class.Guid))
+                .ToList();
         }
         finally
         {
@@ -45,6 +93,11 @@ internal sealed class ClassStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (IsPendingDelete(classGuid))
+            {
+                return null;
+            }
+
             if (_classes.TryGetValue(classGuid, out var cached))
             {
                 return cached;
@@ -56,11 +109,12 @@ internal sealed class ClassStore
             }
 
             var loaded = await _dataSource.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-            if (loaded is not null)
+            if (loaded is null || IsPendingDelete(loaded.Guid))
             {
-                _classes[loaded.Guid] = loaded;
+                return null;
             }
 
+            _classes[loaded.Guid] = loaded;
             return loaded;
         }
         finally
@@ -85,6 +139,8 @@ internal sealed class ClassStore
             _classes[@class.Guid] = @class;
             lock (_dirtySync)
             {
+                // 复用 Guid 时，旧班级的待删除状态应当失效。
+                _pendingDeletes.Remove(@class.Guid);
                 _neverSaved.Add(@class.Guid);
             }
         }
@@ -132,33 +188,67 @@ internal sealed class ClassStore
 
     public async Task SaveDirtyAsync(CancellationToken cancellationToken)
     {
-        Guid[] dirty;
         Guid[] pendingDeletes;
-
         lock (_dirtySync)
         {
-            dirty = _dirty.ToArray();
-            pendingDeletes = _pendingDeletes.ToArray();
+            pendingDeletes = [.. _pendingDeletes];
         }
 
         foreach (var classGuid in pendingDeletes)
         {
             using (await LockClassAsync(classGuid, cancellationToken).ConfigureAwait(false))
             {
+                lock (_dirtySync)
+                {
+                    // 在等待班级锁期间可能已经被其他 SaveAsync 处理，或重新加入了班级。
+                    if (!_pendingDeletes.Contains(classGuid))
+                    {
+                        continue;
+                    }
+                }
+
                 await _dataSource.DeleteClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+
+                await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    // 防止删除失败/取消后再次被数据源重新加载进缓存。
+                    _classes.Remove(classGuid);
+                }
+                finally
+                {
+                    _gate.Release();
+                }
 
                 lock (_dirtySync)
                 {
                     _pendingDeletes.Remove(classGuid);
                     _neverSaved.Remove(classGuid);
+                    _dirty.Remove(classGuid);
                 }
             }
+        }
+
+        // 删除处理完后再取快照，避免把刚刚删除的班级又保存回去。
+        Guid[] dirty;
+        lock (_dirtySync)
+        {
+            dirty = [.. _dirty];
         }
 
         foreach (var classGuid in dirty)
         {
             using (await LockClassAsync(classGuid, cancellationToken).ConfigureAwait(false))
             {
+                lock (_dirtySync)
+                {
+                    // 等待班级锁期间可能被删除，或已被其他 SaveAsync 保存。
+                    if (_pendingDeletes.Contains(classGuid) || !_dirty.Contains(classGuid))
+                    {
+                        continue;
+                    }
+                }
+
                 await SaveClassCoreAsync(classGuid, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -200,6 +290,16 @@ internal sealed class ClassStore
             if (immediate && !wasNeverSaved)
             {
                 await _dataSource.DeleteClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+
+                await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    _classes.Remove(classGuid);
+                }
+                finally
+                {
+                    _gate.Release();
+                }
 
                 lock (_dirtySync)
                 {
@@ -271,19 +371,67 @@ internal sealed class ClassStore
 
     public async Task<IDisposable> LockClassAsync(Guid classGuid, CancellationToken cancellationToken)
     {
-        SemaphoreSlim semaphore;
+        LockEntry entry;
 
         lock (_locksSync)
         {
-            if (!_classLocks.TryGetValue(classGuid, out semaphore!))
+            if (!_classLocks.TryGetValue(classGuid, out entry!))
             {
-                semaphore = new SemaphoreSlim(1, 1);
-                _classLocks[classGuid] = semaphore;
+                entry = new LockEntry();
+                _classLocks[classGuid] = entry;
+            }
+
+            entry.References++;
+        }
+
+        try
+        {
+            await entry.Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            ReleaseEntry(classGuid, entry);
+            throw;
+        }
+
+        return new ClassLockReleaser(this, classGuid, entry);
+    }
+
+    private void ReleaseClassLock(Guid classGuid, LockEntry entry)
+    {
+        entry.Semaphore.Release();
+        ReleaseEntry(classGuid, entry);
+    }
+
+    private void ReleaseEntry(Guid classGuid, LockEntry entry)
+    {
+        var dispose = false;
+
+        lock (_locksSync)
+        {
+            entry.References--;
+
+            if (entry.References == 0
+                && _classLocks.TryGetValue(classGuid, out var current)
+                && ReferenceEquals(current, entry))
+            {
+                _classLocks.Remove(classGuid);
+                dispose = true;
             }
         }
 
-        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new SemaphoreReleaser(semaphore);
+        if (dispose)
+        {
+            entry.Semaphore.Dispose();
+        }
+    }
+
+    private bool IsPendingDelete(Guid classGuid)
+    {
+        lock (_dirtySync)
+        {
+            return _pendingDeletes.Contains(classGuid);
+        }
     }
 
     private async Task EnsureAllLoadedCoreAsync(CancellationToken cancellationToken)
@@ -295,16 +443,40 @@ internal sealed class ClassStore
 
         var classes = await _dataSource.GetClassesAsync(cancellationToken).ConfigureAwait(false);
 
+        HashSet<Guid> pendingDeletes;
+        lock (_dirtySync)
+        {
+            pendingDeletes = [.. _pendingDeletes];
+        }
+
         foreach (var @class in classes)
         {
+            if (pendingDeletes.Contains(@class.Guid))
+            {
+                continue;
+            }
+
             // 保留已经缓存的实例，避免破坏调用方持有的引用。
             _classes.TryAdd(@class.Guid, @class);
+        }
+
+        foreach (var classGuid in pendingDeletes)
+        {
+            // 清理可能因为旧版本逻辑残留的已删除班级。
+            _classes.Remove(classGuid);
         }
 
         _allLoaded = true;
     }
 
-    private sealed class SemaphoreReleaser(SemaphoreSlim semaphore) : IDisposable
+    private sealed class LockEntry
+    {
+        public SemaphoreSlim Semaphore { get; } = new(1, 1);
+
+        public int References { get; set; }
+    }
+
+    private sealed class ClassLockReleaser(ClassStore owner, Guid classGuid, LockEntry entry) : IDisposable
     {
         private int _disposed;
 
@@ -312,7 +484,7 @@ internal sealed class ClassStore
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                semaphore.Release();
+                owner.ReleaseClassLock(classGuid, entry);
             }
         }
     }

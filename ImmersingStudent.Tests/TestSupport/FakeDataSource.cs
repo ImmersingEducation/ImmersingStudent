@@ -33,6 +33,11 @@ internal sealed class FakeDataSource : IDataSource
     /// </summary>
     public bool FailNextGetClasses { get; set; }
 
+    /// <summary>
+    /// 下一次删除班级时抛出异常。
+    /// </summary>
+    public bool FailNextDelete { get; set; }
+
     public FakeDataSource(params Class[] seed)
     {
         foreach (var @class in seed)
@@ -94,6 +99,12 @@ internal sealed class FakeDataSource : IDataSource
     public Task DeleteClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (FailNextDelete)
+        {
+            FailNextDelete = false;
+            throw new InvalidOperationException("模拟删除失败。");
+        }
 
         lock (_sync)
         {

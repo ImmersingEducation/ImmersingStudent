@@ -262,4 +262,73 @@ public class StudentTests
         Assert.Equal(2, @class.Students.Single(student => student.Id == "c").IdInClass);
         Assert.Equal(3, @class.Students.Single(student => student.Id == "b").IdInClass);
     }
+
+    [Fact]
+    public async Task UpdateStudentAsync_ValidationFailure_RollsBackAndKeepsObjectIdentity()
+    {
+        var @class = TestData.NewClass(students:
+        [
+            TestData.NewStudent("1", "张三", 1),
+            TestData.NewStudent("2", "李四", 2)
+        ]);
+        var (client, dataSource, cached) = await TestData.CreateClientAsync(seed: @class);
+        var first = cached.Students[0];
+        var second = cached.Students[1];
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => client.UpdateStudentAsync(cached.Guid, second.Guid, student =>
+            {
+                student.Id = "1";
+                student.Name = "改名";
+                student.IdInClass = 99;
+                student.Gender = Gender.Female;
+            }));
+
+        Assert.Contains(exception.Errors, error => error.Code == "duplicateStudentId");
+        Assert.Same(first, cached.Students[0]);
+        Assert.Same(second, cached.Students[1]);
+        Assert.Equal("1", first.Id);
+        Assert.Equal("2", second.Id);
+        Assert.Equal("李四", second.Name);
+        Assert.Equal(2, second.IdInClass);
+        Assert.Equal(Gender.Male, second.Gender);
+        Assert.Equal(0, dataSource.SaveClassCalls);
+    }
+
+    [Fact]
+    public async Task UpdateStudentAsync_CallbackThrows_RollsBack()
+    {
+        var @class = TestData.NewClass(students: [TestData.NewStudent("1", "张三", 1)]);
+        var (client, _, cached) = await TestData.CreateClientAsync(seed: @class);
+        var student = cached.Students[0];
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.UpdateStudentAsync(cached.Guid, student.Guid, item =>
+            {
+                item.Name = "改名";
+                throw new InvalidOperationException("模拟更新回调失败。");
+            }));
+
+        Assert.Equal("张三", student.Name);
+        Assert.Same(student, Assert.Single(cached.Students));
+    }
+
+    [Fact]
+    public async Task AddStudentsAsync_ClonesCallerInstances()
+    {
+        var (client, _, @class) = await TestData.CreateClientAsync();
+        var property = new ExtraProperty<int> { Id = "age", Value = 12 };
+        var incoming = new Student("1", "张三", 1, Gender.Male, [property]);
+
+        var added = await client.AddStudentsAsync(@class.Guid, [incoming]);
+
+        incoming.Name = "外部修改";
+        incoming.ExtraProperties.Clear();
+        property.Value = 99;
+
+        Assert.NotSame(incoming, added[0]);
+        Assert.Same(added[0], Assert.Single(@class.Students));
+        Assert.Equal("张三", @class.Students[0].Name);
+        Assert.Equal(12, ReadOnlyClient.GetExtraProperty<int>(@class.Students[0].ExtraProperties, "age"));
+    }
 }

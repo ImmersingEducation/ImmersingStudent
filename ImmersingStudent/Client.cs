@@ -47,14 +47,18 @@ public sealed class Client
     {
         ValidateClassName(nameWithoutGrade);
 
-        var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
-        EnsureClassNameAvailable(classes, grade, nameWithoutGrade);
+        // 班级重名检查跨越所有班级，必须和创建动作一起串行化。
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+            EnsureClassNameAvailable(classes, grade, nameWithoutGrade);
 
-        var @class = new Class(grade, nameWithoutGrade, [], [], []);
-        await _store.AddAsync(@class, cancellationToken).ConfigureAwait(false);
-        await PersistAsync(@class.Guid, cancellationToken).ConfigureAwait(false);
+            var @class = new Class(grade, nameWithoutGrade, [], [], []);
+            await _store.AddAsync(@class, cancellationToken).ConfigureAwait(false);
+            await PersistAsync(@class.Guid, cancellationToken).ConfigureAwait(false);
 
-        return @class;
+            return @class;
+        }
     }
 
     /// <summary>
@@ -67,13 +71,19 @@ public sealed class Client
     {
         ValidateClassName(nameWithoutGrade);
 
-        var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
-        var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
-                     ?? throw new ClassNotFoundException(classGuid);
-        EnsureClassNameAvailable(classes, @class.Grade, nameWithoutGrade, classGuid);
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+            var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
+                         ?? throw new ClassNotFoundException(classGuid);
+            EnsureClassNameAvailable(classes, @class.Grade, nameWithoutGrade, classGuid);
 
-        await MutateAsync(classGuid, item => item.NameWithoutGrade = nameWithoutGrade, cancellationToken)
-            .ConfigureAwait(false);
+            await MutateCoreAsync(
+                    classGuid,
+                    item => item.NameWithoutGrade = nameWithoutGrade,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -84,12 +94,16 @@ public sealed class Client
         Grade grade,
         CancellationToken cancellationToken = default)
     {
-        var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
-        var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
-                     ?? throw new ClassNotFoundException(classGuid);
-        EnsureClassNameAvailable(classes, grade, @class.NameWithoutGrade, classGuid);
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+            var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
+                         ?? throw new ClassNotFoundException(classGuid);
+            EnsureClassNameAvailable(classes, grade, @class.NameWithoutGrade, classGuid);
 
-        await MutateAsync(classGuid, item => item.Grade = grade, cancellationToken).ConfigureAwait(false);
+            await MutateCoreAsync(classGuid, item => item.Grade = grade, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -97,14 +111,17 @@ public sealed class Client
     /// </summary>
     public async Task DeleteClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
-        // 先确保班级已加载，这样未提前查询时也能正确删除。
-        await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            // 先确保班级已加载，这样未提前查询时也能正确删除。
+            await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
 
-        await _store.DeleteClassAsync(
-                classGuid,
-                immediate: _saveMode == SaveMode.Auto,
-                cancellationToken)
-            .ConfigureAwait(false);
+            await _store.DeleteClassAsync(
+                    classGuid,
+                    immediate: _saveMode == SaveMode.Auto,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     #endregion
@@ -181,7 +198,8 @@ public sealed class Client
     {
         ArgumentNullException.ThrowIfNull(students);
 
-        var incoming = students.ToList();
+        // 复制调用方传入的实例，避免调用方后续修改绕过客户端校验和脏标记。
+        var incoming = students.Select(ModelCloner.Clone).ToList();
 
         return MutateAsync<IReadOnlyList<Student>>(
             classGuid,
@@ -650,43 +668,68 @@ public sealed class Client
         Guid classGuid,
         CancellationToken cancellationToken = default)
     {
-        var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
-        var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
-                     ?? throw new ClassNotFoundException(classGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+            var @class = classes.FirstOrDefault(item => item.Guid == classGuid)
+                         ?? throw new ClassNotFoundException(classGuid);
 
-        return ValidateClass(@class, classes);
+            return ValidateClass(@class, classes);
+        }
     }
 
     /// <summary>
-    /// 保存所有未保存的修改和删除。
+    /// 保存所有未保存的修改和删除。保存前会校验当前缓存中的班级。
     /// </summary>
-    public Task SaveAsync(CancellationToken cancellationToken = default)
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
-        return _store.SaveDirtyAsync(cancellationToken);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (_store.HasDirtyClasses)
+            {
+                var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+                EnsureAllSavable(classes);
+            }
+
+            await _store.SaveDirtyAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
-    /// 保存指定班级。
+    /// 保存指定班级。保存前会校验该班级。
     /// </summary>
-    public Task SaveAsync(Guid classGuid, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
-        return _store.SaveClassAsync(classGuid, cancellationToken);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            var classes = await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+            EnsureSavable(@class, classes);
+
+            await _store.SaveClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// 从数据源重新加载全部班级。已返回给调用方的旧引用将不再与缓存同步。
     /// </summary>
-    public Task ReloadAsync(CancellationToken cancellationToken = default)
+    public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
-        return _store.ReloadAsync(cancellationToken);
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            await _store.ReloadAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// 从数据源重新加载指定班级。已返回给调用方的旧引用将不再与缓存同步。
     /// </summary>
-    public Task ReloadAsync(Guid classGuid, CancellationToken cancellationToken = default)
+    public async Task ReloadAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
-        return _store.ReloadAsync(classGuid, cancellationToken);
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            await _store.ReloadAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     #endregion
@@ -698,12 +741,35 @@ public sealed class Client
         Func<Class, T> mutate,
         CancellationToken cancellationToken)
     {
+        using (await _store.LockWriteAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return await MutateCoreAsync(classGuid, mutate, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<T> MutateCoreAsync<T>(
+        Guid classGuid,
+        Func<Class, T> mutate,
+        CancellationToken cancellationToken)
+    {
         using (await _store.LockClassAsync(classGuid, cancellationToken).ConfigureAwait(false))
         {
             var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            var snapshot = ModelCloner.Clone(@class);
 
-            var result = mutate(@class);
-            EnsureValid(@class);
+            T result;
+            try
+            {
+                result = mutate(@class);
+                EnsureValid(@class);
+            }
+            catch
+            {
+                // 校验或用户回调失败时恢复原状态，避免把非法数据留在缓存里。
+                ModelCloner.Restore(@class, snapshot);
+                throw;
+            }
+
             await PersistAsync(classGuid, cancellationToken).ConfigureAwait(false);
 
             return result;
@@ -750,6 +816,31 @@ public sealed class Client
     private static void EnsureValid(Class @class)
     {
         var errors = ValidateClass(@class);
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void EnsureSavable(Class @class, IReadOnlyCollection<Class> allClasses)
+    {
+        var errors = ValidateClass(@class, allClasses);
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void EnsureAllSavable(IReadOnlyCollection<Class> classes)
+    {
+        var errors = new List<ValidationError>();
+
+        foreach (var @class in classes)
+        {
+            errors.AddRange(ValidateClass(@class, classes));
+        }
 
         if (errors.Count > 0)
         {

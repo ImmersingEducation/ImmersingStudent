@@ -25,25 +25,34 @@ public sealed class ReadOnlyClient
     /// <summary>
     /// 获取全部班级。
     /// </summary>
-    public Task<IReadOnlyList<Class>> GetClassesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Class>> GetClassesAsync(CancellationToken cancellationToken = default)
     {
-        return _store.GetClassesAsync(cancellationToken);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return await _store.GetClassesAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// 查找班级；不存在时返回 <see langword="null"/>。
     /// </summary>
-    public Task<Class?> FindClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
+    public async Task<Class?> FindClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
-        return _store.FindClassAsync(classGuid, cancellationToken);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return await _store.FindClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// 获取班级；不存在时抛出 <see cref="ClassNotFoundException"/>。
     /// </summary>
-    public Task<Class> GetClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
+    public async Task<Class> GetClassAsync(Guid classGuid, CancellationToken cancellationToken = default)
     {
-        return _store.GetClassAsync(classGuid, cancellationToken);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -53,8 +62,11 @@ public sealed class ReadOnlyClient
         Guid classGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        return @class.Students;
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            return @class.Students;
+        }
     }
 
     /// <summary>
@@ -65,8 +77,11 @@ public sealed class ReadOnlyClient
         Guid studentGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        return @class.Students.FirstOrDefault(student => student.Guid == studentGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            return @class.Students.FirstOrDefault(student => student.Guid == studentGuid);
+        }
     }
 
     /// <summary>
@@ -79,9 +94,12 @@ public sealed class ReadOnlyClient
     {
         ArgumentNullException.ThrowIfNull(studentId);
 
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        return @class.Students.FirstOrDefault(
-            student => string.Equals(student.Id, studentId, StringComparison.OrdinalIgnoreCase));
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            return @class.Students.FirstOrDefault(
+                student => string.Equals(student.Id, studentId, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     /// <summary>
@@ -91,8 +109,11 @@ public sealed class ReadOnlyClient
         Guid classGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        return @class.GroupingRules;
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            return @class.GroupingRules;
+        }
     }
 
     /// <summary>
@@ -103,8 +124,11 @@ public sealed class ReadOnlyClient
         Guid ruleGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        return @class.GroupingRules.FirstOrDefault(rule => rule.Guid == ruleGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            return @class.GroupingRules.FirstOrDefault(rule => rule.Guid == ruleGuid);
+        }
     }
 
     /// <summary>
@@ -115,11 +139,14 @@ public sealed class ReadOnlyClient
         Guid ruleGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
-                   ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
+                       ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
 
-        return rule.Groups;
+            return rule.Groups;
+        }
     }
 
     /// <summary>
@@ -131,17 +158,20 @@ public sealed class ReadOnlyClient
         Guid groupGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
-                   ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
-        var group = rule.Groups.FirstOrDefault(item => item.Guid == groupGuid)
-                    ?? throw new GroupNotFoundException(classGuid, groupGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
+                       ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
+            var group = rule.Groups.FirstOrDefault(item => item.Guid == groupGuid)
+                        ?? throw new GroupNotFoundException(classGuid, groupGuid);
 
-        var students = @class.Students.ToDictionary(student => student.Guid);
-        return group.StudentGuids
-            .Where(students.ContainsKey)
-            .Select(studentGuid => students[studentGuid])
-            .ToList();
+            var students = @class.Students.ToDictionary(student => student.Guid);
+            return group.StudentGuids
+                .Where(students.ContainsKey)
+                .Select(studentGuid => students[studentGuid])
+                .ToList();
+        }
     }
 
     /// <summary>
@@ -152,17 +182,20 @@ public sealed class ReadOnlyClient
         Guid ruleGuid,
         CancellationToken cancellationToken = default)
     {
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
-        var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
-                   ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+            var rule = @class.GroupingRules.FirstOrDefault(item => item.Guid == ruleGuid)
+                       ?? throw new GroupingRuleNotFoundException(classGuid, ruleGuid);
 
-        var groupedStudentGuids = rule.Groups
-            .SelectMany(group => group.StudentGuids)
-            .ToHashSet();
+            var groupedStudentGuids = rule.Groups
+                .SelectMany(group => group.StudentGuids)
+                .ToHashSet();
 
-        return @class.Students
-            .Where(student => !groupedStudentGuids.Contains(student.Guid))
-            .ToList();
+            return @class.Students
+                .Where(student => !groupedStudentGuids.Contains(student.Guid))
+                .ToList();
+        }
     }
 
     /// <summary>
@@ -176,14 +209,17 @@ public sealed class ReadOnlyClient
     {
         ArgumentNullException.ThrowIfNull(keyword);
 
-        var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
+        using (await _store.LockReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var @class = await _store.GetClassAsync(classGuid, cancellationToken).ConfigureAwait(false);
 
-        return @class.Students
-            .Where(student => gender is null || student.Gender == gender)
-            .Where(student => string.IsNullOrWhiteSpace(keyword)
-                              || student.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                              || student.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+            return @class.Students
+                .Where(student => gender is null || student.Gender == gender)
+                .Where(student => string.IsNullOrWhiteSpace(keyword)
+                                  || student.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                                  || student.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
     }
 
     /// <summary>

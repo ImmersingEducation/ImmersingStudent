@@ -1,3 +1,4 @@
+using ImmersingStudent.Abstractions;
 using ImmersingStudent.Exceptions;
 using ImmersingStudent.Models;
 using ImmersingStudent.Tests.TestSupport;
@@ -50,7 +51,7 @@ public class ReadOnlyClientTests
     [Fact]
     public void Constructor_NullDataSource_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => new ReadOnlyClient(null!));
+        Assert.Throws<ArgumentNullException>(() => new ReadOnlyClient((IDataSource)null!));
     }
 
     [Fact]

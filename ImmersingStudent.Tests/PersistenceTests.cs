@@ -190,4 +190,85 @@ public class PersistenceTests
 
         Assert.Empty(@class.Students);
     }
+
+    [Fact]
+    public async Task ManualDelete_DoesNotResurrectThroughQueriesBeforeSave()
+    {
+        var (client, dataSource, @class) = await TestData.CreateClientAsync();
+
+        // 先走一次“全部加载”路径，覆盖 EnsureAllLoadedCoreAsync。
+        Assert.Single(await client.ReadOnly.GetClassesAsync());
+
+        await client.DeleteClassAsync(@class.Guid);
+
+        Assert.Empty(await client.ReadOnly.GetClassesAsync());
+        Assert.Null(await client.ReadOnly.FindClassAsync(@class.Guid));
+        Assert.True(dataSource.Contains(@class.Guid));
+
+        await client.SaveAsync();
+
+        Assert.False(dataSource.Contains(@class.Guid));
+        Assert.Empty(await client.ReadOnly.GetClassesAsync());
+        Assert.Null(await client.ReadOnly.FindClassAsync(@class.Guid));
+    }
+
+    [Fact]
+    public async Task AutoDeleteFailure_KeepsClassHiddenAndRetriesOnSave()
+    {
+        var (client, dataSource, @class) = await TestData.CreateClientAsync(SaveMode.Auto);
+        dataSource.FailNextDelete = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.DeleteClassAsync(@class.Guid));
+
+        Assert.Null(await client.ReadOnly.FindClassAsync(@class.Guid));
+        Assert.Empty(await client.ReadOnly.GetClassesAsync());
+        Assert.True(dataSource.Contains(@class.Guid));
+
+        await client.SaveAsync();
+
+        Assert.False(dataSource.Contains(@class.Guid));
+        Assert.Null(await client.ReadOnly.FindClassAsync(@class.Guid));
+    }
+
+    [Fact]
+    public async Task SaveAsync_ByClassGuid_ValidatesDirectMutations()
+    {
+        var @class = TestData.NewClass(students:
+        [
+            TestData.NewStudent("1", "张三", 1),
+            TestData.NewStudent("2", "李四", 2)
+        ]);
+        var (client, dataSource, cached) = await TestData.CreateClientAsync(seed: @class);
+
+        cached.Students[1].Id = "1";
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => client.SaveAsync(cached.Guid));
+
+        Assert.Contains(exception.Errors, error => error.Code == "duplicateStudentId");
+        Assert.Equal("2", dataSource.GetSavedClass(cached.Guid)!.Students[1].Id);
+    }
+
+    [Fact]
+    public async Task SaveAsync_ValidatesCachedClassesBeforeWritingAnything()
+    {
+        var (client, dataSource, @class) = await TestData.CreateClientAsync();
+        await client.SetExtraPropertyAsync(
+            @class.Guid,
+            @class.Guid,
+            ExtraPropertyOwner.Class,
+            "note",
+            "dirty");
+
+        // 直接修改制造非法状态，模拟绕过客户端直接改模型的场景。
+        @class.Students.Add(TestData.NewStudent("1", "张三", 1));
+        @class.Students.Add(TestData.NewStudent("1", "李四", 2));
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => client.SaveAsync());
+
+        Assert.Contains(exception.Errors, error => error.Code == "duplicateStudentId");
+        Assert.Equal(0, dataSource.SaveClassCalls);
+        Assert.Empty(dataSource.GetSavedClass(@class.Guid)!.Students);
+    }
 }
