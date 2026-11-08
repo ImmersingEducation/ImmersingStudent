@@ -1,10 +1,10 @@
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Enums;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Internal;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Internal;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent;
 
 /// <summary>
 /// 可写服务，负责数据修改、校验和保存。

@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Models;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 /// <summary>
 /// 学生信息

@@ -1,10 +1,10 @@
-using ImmersingStudent.Enums;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Models;
-using ImmersingStudent.Tests.TestSupport;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Tests.TestSupport;
 using Xunit;
 
-namespace ImmersingStudent.Tests;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Tests;
 
 public class ClassTests
 {

@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Models;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 /// <summary>
 /// 分组规则

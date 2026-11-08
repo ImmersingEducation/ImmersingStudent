@@ -48,8 +48,8 @@ dotnet build ImmersingStudent/ImmersingStudent.csproj -c Release
 The library does not handle persistence itself. Implement `IDataSource` for your storage. Here is a minimal in-memory example:
 
 ```csharp
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 public sealed class InMemoryDataSource : IDataSource
 {
@@ -80,9 +80,9 @@ public sealed class InMemoryDataSource : IDataSource
 ### 2. Create a StudentService and Work with Data
 
 ```csharp
-using ImmersingStudent;
-using ImmersingStudent.Enums;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 var dataSource = new InMemoryDataSource();
 var client = new StudentService(dataSource, SaveMode.Auto);

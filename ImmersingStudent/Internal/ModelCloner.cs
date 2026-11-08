@@ -1,6 +1,6 @@
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Internal;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Internal;
 
 /// <summary>
 /// 模型深拷贝与原地恢复工具。用于在修改失败时回滚，同时尽量保留调用方已持有的对象引用。

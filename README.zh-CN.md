@@ -48,8 +48,8 @@ dotnet build ImmersingStudent/ImmersingStudent.csproj -c Release
 类库不负责具体持久化，业务方需要实现 `IDataSource`。下面是内存实现的最小示例：
 
 ```csharp
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 public sealed class InMemoryDataSource : IDataSource
 {
@@ -80,9 +80,9 @@ public sealed class InMemoryDataSource : IDataSource
 ### 2. 创建客户端并操作数据
 
 ```csharp
-using ImmersingStudent;
-using ImmersingStudent.Enums;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
 var dataSource = new InMemoryDataSource();
 var client = new StudentService(dataSource, SaveMode.Auto);

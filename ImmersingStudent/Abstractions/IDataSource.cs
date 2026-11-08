@@ -1,6 +1,6 @@
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Abstractions;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
 
 /// <summary>
 /// 数据源接口，提供给 <see cref="StudentService"/> 和 <see cref="ReadOnlyStudentService"/> 使用。

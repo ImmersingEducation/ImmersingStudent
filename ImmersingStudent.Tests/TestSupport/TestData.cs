@@ -1,7 +1,7 @@
-using ImmersingStudent.Enums;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Tests.TestSupport;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Tests.TestSupport;
 
 internal static class TestData
 {

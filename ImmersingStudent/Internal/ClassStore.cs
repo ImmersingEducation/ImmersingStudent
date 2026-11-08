@@ -1,8 +1,8 @@
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Internal;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Internal;
 
 /// <summary>
 /// 服务共享的班级缓存。保证同一班级在多次查询中返回同一个实例。

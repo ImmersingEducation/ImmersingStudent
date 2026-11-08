@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Exceptions;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
 
 /// <summary>
 /// 一条数据校验错误，作为 <see cref="ValidationException"/> 的载荷。

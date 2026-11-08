@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Enums;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
 
 /// <summary>
 /// 保存策略。

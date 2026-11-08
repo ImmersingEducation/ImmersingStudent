@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Enums;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
 
 /// <summary>
 /// 扩展属性所属的实体类型。

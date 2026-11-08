@@ -1,9 +1,9 @@
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Internal;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Internal;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent;
 
 /// <summary>
 /// 只读服务。所有查询返回缓存中的模型引用，不会修改或保存数据。

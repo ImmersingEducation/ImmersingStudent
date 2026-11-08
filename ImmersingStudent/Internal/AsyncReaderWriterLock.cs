@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Internal;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Internal;
 
 /// <summary>
 /// 简单的异步读写锁。普通查询/修改共享读锁，Reload 等全局操作使用写锁。

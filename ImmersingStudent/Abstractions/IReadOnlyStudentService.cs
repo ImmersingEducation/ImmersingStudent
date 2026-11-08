@@ -1,7 +1,7 @@
-using ImmersingStudent.Enums;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Abstractions;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
 
 /// <summary>
 /// 只读学生数据服务。所有查询返回缓存中的模型引用，不会修改或保存数据。

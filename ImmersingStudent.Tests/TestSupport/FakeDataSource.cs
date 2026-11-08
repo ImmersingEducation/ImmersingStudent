@@ -1,7 +1,7 @@
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Tests.TestSupport;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Tests.TestSupport;
 
 /// <summary>
 /// 内存数据源，保存的是快照副本，便于验证客户端是否真的落盘。

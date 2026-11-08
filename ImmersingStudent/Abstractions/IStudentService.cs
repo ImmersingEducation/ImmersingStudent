@@ -1,8 +1,8 @@
-using ImmersingStudent.Enums;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Enums;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
 
-namespace ImmersingStudent.Abstractions;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
 
 /// <summary>
 /// 可写学生数据服务，负责数据修改、校验和保存。

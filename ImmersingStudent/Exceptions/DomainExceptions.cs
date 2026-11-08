@@ -1,4 +1,4 @@
-namespace ImmersingStudent.Exceptions;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
 
 /// <summary>
 /// 本库所有业务异常的基类。

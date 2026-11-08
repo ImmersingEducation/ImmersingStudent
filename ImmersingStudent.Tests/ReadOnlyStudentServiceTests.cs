@@ -1,10 +1,10 @@
-using ImmersingStudent.Abstractions;
-using ImmersingStudent.Exceptions;
-using ImmersingStudent.Models;
-using ImmersingStudent.Tests.TestSupport;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Abstractions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Exceptions;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Models;
+using ImmersingEducation.Infrastructures.ImmersingStudent.Tests.TestSupport;
 using Xunit;
 
-namespace ImmersingStudent.Tests;
+namespace ImmersingEducation.Infrastructures.ImmersingStudent.Tests;
 
 public class ReadOnlyStudentServiceTests
 {
