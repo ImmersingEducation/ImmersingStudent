@@ -165,8 +165,8 @@ public class ExtraPropertyTests
             new ExtraProperty<int> { Id = "count", Value = 5 }
         };
 
-        Assert.Equal("value", ReadOnlyClient.GetExtraProperty<string>(properties, "name"));
-        Assert.Equal(5, ReadOnlyClient.GetExtraProperty<int>(properties, "count"));
+        Assert.Equal("value", ReadOnlyStudentService.GetExtraProperty<string>(properties, "name"));
+        Assert.Equal(5, ReadOnlyStudentService.GetExtraProperty<int>(properties, "count"));
     }
 
     [Fact]
@@ -177,16 +177,16 @@ public class ExtraPropertyTests
             new ExtraProperty<string> { Id = "name", Value = "value" }
         };
 
-        Assert.Null(ReadOnlyClient.GetExtraProperty<int?>(properties, "name"));
-        Assert.Null(ReadOnlyClient.GetExtraProperty<string>(properties, "missing"));
+        Assert.Null(ReadOnlyStudentService.GetExtraProperty<int?>(properties, "name"));
+        Assert.Null(ReadOnlyStudentService.GetExtraProperty<string>(properties, "missing"));
     }
 
     [Fact]
     public void GetExtraProperty_NullArguments_Throw()
     {
         Assert.Throws<ArgumentNullException>(
-            () => ReadOnlyClient.GetExtraProperty<string>(null!, "id"));
+            () => ReadOnlyStudentService.GetExtraProperty<string>(null!, "id"));
         Assert.Throws<ArgumentNullException>(
-            () => ReadOnlyClient.GetExtraProperty<string>([], null!));
+            () => ReadOnlyStudentService.GetExtraProperty<string>([], null!));
     }
 }

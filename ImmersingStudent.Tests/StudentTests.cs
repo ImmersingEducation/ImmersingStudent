@@ -329,6 +329,6 @@ public class StudentTests
         Assert.NotSame(incoming, added[0]);
         Assert.Same(added[0], Assert.Single(@class.Students));
         Assert.Equal("张三", @class.Students[0].Name);
-        Assert.Equal(12, ReadOnlyClient.GetExtraProperty<int>(@class.Students[0].ExtraProperties, "age"));
+        Assert.Equal(12, ReadOnlyStudentService.GetExtraProperty<int>(@class.Students[0].ExtraProperties, "age"));
     }
 }

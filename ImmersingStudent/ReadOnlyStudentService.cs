@@ -6,18 +6,18 @@ using ImmersingStudent.Models;
 namespace ImmersingStudent;
 
 /// <summary>
-/// 只读客户端。所有查询返回缓存中的模型引用，不会修改或保存数据。
+/// 只读服务。所有查询返回缓存中的模型引用，不会修改或保存数据。
 /// </summary>
-public sealed class ReadOnlyClient
+public sealed class ReadOnlyStudentService : IReadOnlyStudentService
 {
     private readonly ClassStore _store;
 
-    public ReadOnlyClient(IDataSource dataSource)
+    public ReadOnlyStudentService(IDataSource dataSource)
         : this(new ClassStore(dataSource))
     {
     }
 
-    internal ReadOnlyClient(ClassStore store)
+    internal ReadOnlyStudentService(ClassStore store)
     {
         _store = store;
     }

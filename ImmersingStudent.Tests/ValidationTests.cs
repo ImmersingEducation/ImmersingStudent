@@ -13,7 +13,7 @@ public class ValidationTests
         var student = TestData.NewStudent("1", "张三", 1);
         var rule = new GroupingRule("值日", [new Group("第一组", [student.Guid], [])], []);
         var @class = TestData.NewClass(students: [student], rules: [rule]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -33,7 +33,7 @@ public class ValidationTests
     {
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "1班");
-        var client = new Client(new FakeDataSource(first, second));
+        var client = new StudentService(new FakeDataSource(first, second));
 
         var errors = await client.ValidateAsync(second.Guid);
 
@@ -44,7 +44,7 @@ public class ValidationTests
     public async Task ValidateAsync_EmptyClassName_ReturnsError()
     {
         var @class = TestData.NewClass(nameWithoutGrade: " ");
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -59,7 +59,7 @@ public class ValidationTests
             TestData.NewStudent("S001", idInClass: 1),
             TestData.NewStudent("s001", idInClass: 2)
         ]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -70,7 +70,7 @@ public class ValidationTests
     public async Task ValidateAsync_EmptyStudentId_ReturnsError()
     {
         var @class = TestData.NewClass(students: [TestData.NewStudent(" ")]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -84,7 +84,7 @@ public class ValidationTests
     {
         var student = TestData.NewStudent("1", idInClass: 1) with { IdInClass = idInClass };
         var @class = TestData.NewClass(students: [student]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -99,7 +99,7 @@ public class ValidationTests
             TestData.NewStudent("1", idInClass: 1),
             TestData.NewStudent("2", idInClass: 1)
         ]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -113,7 +113,7 @@ public class ValidationTests
         var first = TestData.NewStudent("1", idInClass: 1) with { Guid = guid };
         var second = TestData.NewStudent("2", idInClass: 2) with { Guid = guid };
         var @class = TestData.NewClass(students: [first, second]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -128,7 +128,7 @@ public class ValidationTests
             new GroupingRule("Duty", [], []),
             new GroupingRule("duty", [], [])
         ]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -139,7 +139,7 @@ public class ValidationTests
     public async Task ValidateAsync_EmptyRuleName_ReturnsError()
     {
         var @class = TestData.NewClass(rules: [new GroupingRule(" ", [], [])]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -155,7 +155,7 @@ public class ValidationTests
             new("group a", [], [])
         };
         var @class = TestData.NewClass(rules: [new GroupingRule("Duty", deduplicated, [])]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -167,7 +167,7 @@ public class ValidationTests
     {
         var @class = TestData.NewClass(
             rules: [new GroupingRule("Duty", [new Group(" ", [], [])], [])]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -184,7 +184,7 @@ public class ValidationTests
             new("第二组", [], []) { Guid = guid }
         };
         var @class = TestData.NewClass(rules: [new GroupingRule("Duty", groups, [])]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -196,7 +196,7 @@ public class ValidationTests
     {
         var rule = new GroupingRule("Duty", [new Group("第一组", [Guid.NewGuid()], [])], []);
         var @class = TestData.NewClass(rules: [rule]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -215,7 +215,7 @@ public class ValidationTests
         var @class = TestData.NewClass(
             students: [student],
             rules: [new GroupingRule("Duty", groups, [])]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 
@@ -232,7 +232,7 @@ public class ValidationTests
                 TestData.NewStudent("", idInClass: 0),
                 TestData.NewStudent("", idInClass: 0)
             ]);
-        var client = new Client(new FakeDataSource(@class));
+        var client = new StudentService(new FakeDataSource(@class));
 
         var errors = await client.ValidateAsync(@class.Guid);
 

@@ -74,7 +74,7 @@ public class ClassTests
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "2班");
         var dataSource = new FakeDataSource(first, second);
-        var client = new Client(dataSource);
+        var client = new StudentService(dataSource);
 
         var exception = await Assert.ThrowsAsync<ValidationException>(
             () => client.RenameClassAsync(second.Guid, "1班"));
@@ -111,7 +111,7 @@ public class ClassTests
     {
         var first = TestData.NewClass(Grade.FirstGrade, "1班");
         var second = TestData.NewClass(Grade.SecondGrade, "1班");
-        var client = new Client(new FakeDataSource(first, second));
+        var client = new StudentService(new FakeDataSource(first, second));
 
         var exception = await Assert.ThrowsAsync<ValidationException>(
             () => client.SetGradeAsync(second.Guid, Grade.FirstGrade));

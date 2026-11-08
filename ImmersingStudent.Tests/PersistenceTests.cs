@@ -78,7 +78,7 @@ public class PersistenceTests
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "2班");
         var dataSource = new FakeDataSource(first, second);
-        var client = new Client(dataSource);
+        var client = new StudentService(dataSource);
         var cachedFirst = await client.ReadOnly.GetClassAsync(first.Guid);
         var cachedSecond = await client.ReadOnly.GetClassAsync(second.Guid);
         cachedFirst.NameWithoutGrade = "修改1";
@@ -136,7 +136,7 @@ public class PersistenceTests
     {
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "2班");
-        var client = new Client(new FakeDataSource(first, second));
+        var client = new StudentService(new FakeDataSource(first, second));
         var firstCached = await client.ReadOnly.GetClassAsync(first.Guid);
         var secondCached = await client.ReadOnly.GetClassAsync(second.Guid);
         firstCached.NameWithoutGrade = "未保存1";

@@ -6,11 +6,11 @@ using Xunit;
 
 namespace ImmersingStudent.Tests;
 
-public class ReadOnlyClientTests
+public class ReadOnlyStudentServiceTests
 {
     private sealed record Fixture(
         FakeDataSource DataSource,
-        ReadOnlyClient Client,
+        ReadOnlyStudentService StudentService,
         Class Class,
         Student First,
         Student Second,
@@ -33,7 +33,7 @@ public class ReadOnlyClientTests
             rules: [rule]);
 
         var dataSource = new FakeDataSource(@class);
-        var client = new ReadOnlyClient(dataSource);
+        var client = new ReadOnlyStudentService(dataSource);
         var cached = await client.GetClassAsync(@class.Guid);
         var cachedRule = Assert.Single(cached.GroupingRules);
         return new Fixture(
@@ -51,7 +51,7 @@ public class ReadOnlyClientTests
     [Fact]
     public void Constructor_NullDataSource_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => new ReadOnlyClient((IDataSource)null!));
+        Assert.Throws<ArgumentNullException>(() => new ReadOnlyStudentService((IDataSource)null!));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var classes = await fixture.Client.GetClassesAsync();
+        var classes = await fixture.StudentService.GetClassesAsync();
 
         Assert.Equal(fixture.Class.Guid, Assert.Single(classes).Guid);
     }
@@ -69,8 +69,8 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var found = await fixture.Client.FindClassAsync(fixture.Class.Guid);
-        var missing = await fixture.Client.FindClassAsync(Guid.NewGuid());
+        var found = await fixture.StudentService.FindClassAsync(fixture.Class.Guid);
+        var missing = await fixture.StudentService.FindClassAsync(Guid.NewGuid());
 
         Assert.Equal(fixture.Class.Guid, found?.Guid);
         Assert.Null(missing);
@@ -83,7 +83,7 @@ public class ReadOnlyClientTests
         var missing = Guid.NewGuid();
 
         var exception = await Assert.ThrowsAsync<ClassNotFoundException>(
-            () => fixture.Client.GetClassAsync(missing));
+            () => fixture.StudentService.GetClassAsync(missing));
 
         Assert.Equal(missing, exception.ClassGuid);
     }
@@ -93,7 +93,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var students = await fixture.Client.GetStudentsAsync(fixture.Class.Guid);
+        var students = await fixture.StudentService.GetStudentsAsync(fixture.Class.Guid);
 
         Assert.Equal(3, students.Count);
     }
@@ -103,8 +103,8 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var found = await fixture.Client.FindStudentAsync(fixture.Class.Guid, fixture.Second.Guid);
-        var missing = await fixture.Client.FindStudentAsync(fixture.Class.Guid, Guid.NewGuid());
+        var found = await fixture.StudentService.FindStudentAsync(fixture.Class.Guid, fixture.Second.Guid);
+        var missing = await fixture.StudentService.FindStudentAsync(fixture.Class.Guid, Guid.NewGuid());
 
         Assert.Same(fixture.Second, found);
         Assert.Null(missing);
@@ -115,8 +115,8 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var found = await fixture.Client.FindStudentByStudentIdAsync(fixture.Class.Guid, "s002");
-        var missing = await fixture.Client.FindStudentByStudentIdAsync(fixture.Class.Guid, "nope");
+        var found = await fixture.StudentService.FindStudentByStudentIdAsync(fixture.Class.Guid, "s002");
+        var missing = await fixture.StudentService.FindStudentByStudentIdAsync(fixture.Class.Guid, "nope");
 
         Assert.Same(fixture.Second, found);
         Assert.Null(missing);
@@ -128,7 +128,7 @@ public class ReadOnlyClientTests
         var fixture = await CreateFixtureAsync();
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => fixture.Client.FindStudentByStudentIdAsync(fixture.Class.Guid, null!));
+            () => fixture.StudentService.FindStudentByStudentIdAsync(fixture.Class.Guid, null!));
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var rules = await fixture.Client.GetGroupingRulesAsync(fixture.Class.Guid);
+        var rules = await fixture.StudentService.GetGroupingRulesAsync(fixture.Class.Guid);
 
         Assert.Same(fixture.Rule, Assert.Single(rules));
     }
@@ -146,8 +146,8 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var found = await fixture.Client.FindGroupingRuleAsync(fixture.Class.Guid, fixture.Rule.Guid);
-        var missing = await fixture.Client.FindGroupingRuleAsync(fixture.Class.Guid, Guid.NewGuid());
+        var found = await fixture.StudentService.FindGroupingRuleAsync(fixture.Class.Guid, fixture.Rule.Guid);
+        var missing = await fixture.StudentService.FindGroupingRuleAsync(fixture.Class.Guid, Guid.NewGuid());
 
         Assert.Same(fixture.Rule, found);
         Assert.Null(missing);
@@ -158,7 +158,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var groups = await fixture.Client.GetGroupsAsync(fixture.Class.Guid, fixture.Rule.Guid);
+        var groups = await fixture.StudentService.GetGroupsAsync(fixture.Class.Guid, fixture.Rule.Guid);
 
         Assert.Equal(2, groups.Count);
     }
@@ -169,7 +169,7 @@ public class ReadOnlyClientTests
         var fixture = await CreateFixtureAsync();
 
         await Assert.ThrowsAsync<GroupingRuleNotFoundException>(
-            () => fixture.Client.GetGroupsAsync(fixture.Class.Guid, Guid.NewGuid()));
+            () => fixture.StudentService.GetGroupsAsync(fixture.Class.Guid, Guid.NewGuid()));
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var members = await fixture.Client.GetGroupMembersAsync(
+        var members = await fixture.StudentService.GetGroupMembersAsync(
             fixture.Class.Guid,
             fixture.Rule.Guid,
             fixture.FirstGroup.Guid);
@@ -190,7 +190,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var members = await fixture.Client.GetGroupMembersAsync(
+        var members = await fixture.StudentService.GetGroupMembersAsync(
             fixture.Class.Guid,
             fixture.Rule.Guid,
             fixture.GroupWithMissingStudent.Guid);
@@ -204,7 +204,7 @@ public class ReadOnlyClientTests
         var fixture = await CreateFixtureAsync();
 
         await Assert.ThrowsAsync<GroupNotFoundException>(
-            () => fixture.Client.GetGroupMembersAsync(
+            () => fixture.StudentService.GetGroupMembersAsync(
                 fixture.Class.Guid,
                 fixture.Rule.Guid,
                 Guid.NewGuid()));
@@ -215,7 +215,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var ungrouped = await fixture.Client.GetUngroupedStudentsAsync(
+        var ungrouped = await fixture.StudentService.GetUngroupedStudentsAsync(
             fixture.Class.Guid,
             fixture.Rule.Guid);
 
@@ -228,7 +228,7 @@ public class ReadOnlyClientTests
         var fixture = await CreateFixtureAsync();
 
         await Assert.ThrowsAsync<GroupingRuleNotFoundException>(
-            () => fixture.Client.GetUngroupedStudentsAsync(fixture.Class.Guid, Guid.NewGuid()));
+            () => fixture.StudentService.GetUngroupedStudentsAsync(fixture.Class.Guid, Guid.NewGuid()));
     }
 
     [Theory]
@@ -242,7 +242,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var students = await fixture.Client.SearchStudentsAsync(
+        var students = await fixture.StudentService.SearchStudentsAsync(
             fixture.Class.Guid,
             keyword,
             gender);
@@ -255,7 +255,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var students = await fixture.Client.SearchStudentsAsync(
+        var students = await fixture.StudentService.SearchStudentsAsync(
             fixture.Class.Guid,
             "",
             Gender.Female);
@@ -268,7 +268,7 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        var students = await fixture.Client.SearchStudentsAsync(
+        var students = await fixture.StudentService.SearchStudentsAsync(
             fixture.Class.Guid,
             "李",
             Gender.Male);
@@ -282,7 +282,7 @@ public class ReadOnlyClientTests
         var fixture = await CreateFixtureAsync();
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => fixture.Client.SearchStudentsAsync(fixture.Class.Guid, null!));
+            () => fixture.StudentService.SearchStudentsAsync(fixture.Class.Guid, null!));
     }
 
     [Fact]
@@ -290,7 +290,7 @@ public class ReadOnlyClientTests
     {
         var @class = TestData.NewClass(Grade.JuniorSecondGrade, "3班");
 
-        var displayName = ReadOnlyClient.GetDisplayName(@class);
+        var displayName = ReadOnlyStudentService.GetDisplayName(@class);
 
         Assert.Equal("初二年级3班", displayName);
     }
@@ -298,7 +298,7 @@ public class ReadOnlyClientTests
     [Fact]
     public void GetDisplayName_NullClass_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => ReadOnlyClient.GetDisplayName(null!));
+        Assert.Throws<ArgumentNullException>(() => ReadOnlyStudentService.GetDisplayName(null!));
     }
 
     [Theory]
@@ -316,14 +316,14 @@ public class ReadOnlyClientTests
     [InlineData(Grade.SeniorThirdGrade, "高三年级")]
     public void GetGradeName_ReturnsChineseName(Grade grade, string expected)
     {
-        Assert.Equal(expected, ReadOnlyClient.GetGradeName(grade));
+        Assert.Equal(expected, ReadOnlyStudentService.GetGradeName(grade));
     }
 
     [Fact]
     public void GetGradeName_UnknownGrade_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => ReadOnlyClient.GetGradeName((Grade)99));
+            () => ReadOnlyStudentService.GetGradeName((Grade)99));
     }
 
     [Fact]
@@ -331,9 +331,9 @@ public class ReadOnlyClientTests
     {
         var fixture = await CreateFixtureAsync();
 
-        await fixture.Client.GetClassesAsync();
-        await fixture.Client.GetStudentsAsync(fixture.Class.Guid);
-        await fixture.Client.GetGroupMembersAsync(
+        await fixture.StudentService.GetClassesAsync();
+        await fixture.StudentService.GetStudentsAsync(fixture.Class.Guid);
+        await fixture.StudentService.GetGroupMembersAsync(
             fixture.Class.Guid,
             fixture.Rule.Guid,
             fixture.FirstGroup.Guid);

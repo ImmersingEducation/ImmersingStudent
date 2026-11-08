@@ -5,7 +5,7 @@ using ImmersingStudent.Models;
 namespace ImmersingStudent.Internal;
 
 /// <summary>
-/// 客户端共享的班级缓存。保证同一班级在多次查询中返回同一个实例。
+/// 服务共享的班级缓存。保证同一班级在多次查询中返回同一个实例。
 /// </summary>
 internal sealed class ClassStore
 {

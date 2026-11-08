@@ -7,33 +7,33 @@ using ImmersingStudent.Models;
 namespace ImmersingStudent;
 
 /// <summary>
-/// 可写客户端，负责数据修改、校验和保存。
+/// 可写服务，负责数据修改、校验和保存。
 /// </summary>
 /// <remarks>
 /// 查询返回的是缓存中的模型引用。通过本类方法修改会自动校验（并在 <see cref="SaveMode.Auto"/> 下保存），
 /// 但直接修改返回的模型（例如 <c>student.Name = "..."</c>）不会被感知，需要手动调用
 /// <see cref="SaveAsync(CancellationToken)"/>。
 /// </remarks>
-public sealed class Client
+public sealed class StudentService : IStudentService
 {
     private static readonly StringComparer IdComparer = StringComparer.OrdinalIgnoreCase;
 
     private readonly ClassStore _store;
     private readonly SaveMode _saveMode;
 
-    public Client(IDataSource dataSource, SaveMode saveMode = SaveMode.Manual)
+    public StudentService(IDataSource dataSource, SaveMode saveMode = SaveMode.Manual)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
 
         _store = new ClassStore(dataSource);
         _saveMode = saveMode;
-        ReadOnly = new ReadOnlyClient(_store);
+        ReadOnly = new ReadOnlyStudentService(_store);
     }
 
     /// <summary>
-    /// 与本客户端共享缓存的只读视图。
+    /// 与本服务共享缓存的只读视图。
     /// </summary>
-    public ReadOnlyClient ReadOnly { get; }
+    public IReadOnlyStudentService ReadOnly { get; }
 
     #region 班级
 
@@ -198,7 +198,7 @@ public sealed class Client
     {
         ArgumentNullException.ThrowIfNull(students);
 
-        // 复制调用方传入的实例，避免调用方后续修改绕过客户端校验和脏标记。
+        // 复制调用方传入的实例，避免调用方后续修改绕过服务校验和脏标记。
         var incoming = students.Select(ModelCloner.Clone).ToList();
 
         return MutateAsync<IReadOnlyList<Student>>(

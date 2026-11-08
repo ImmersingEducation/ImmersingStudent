@@ -36,7 +36,7 @@ public class ConcurrencyTests
     {
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "2班");
-        var client = new Client(new FakeDataSource(first, second));
+        var client = new StudentService(new FakeDataSource(first, second));
 
         var outcomes = await Task.WhenAll(
             TryRenameAsync(client, first.Guid, "3班"),
@@ -51,7 +51,7 @@ public class ConcurrencyTests
     {
         var first = TestData.NewClass(nameWithoutGrade: "1班");
         var second = TestData.NewClass(nameWithoutGrade: "2班");
-        var client = new Client(new FakeDataSource(first, second));
+        var client = new StudentService(new FakeDataSource(first, second));
         var cachedFirst = await client.ReadOnly.GetClassAsync(first.Guid);
         var cachedSecond = await client.ReadOnly.GetClassAsync(second.Guid);
 
@@ -192,7 +192,7 @@ public class ConcurrencyTests
         Assert.Equal(0, store.ClassLockCount);
     }
 
-    private static async Task<Exception?> TryRenameAsync(Client client, Guid classGuid, string name)
+    private static async Task<Exception?> TryRenameAsync(StudentService client, Guid classGuid, string name)
     {
         try
         {

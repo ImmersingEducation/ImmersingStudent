@@ -15,7 +15,7 @@ Built around the `Class` aggregate root, it provides student CRUD, grouping rule
 - **Grouping rules**: each class can have multiple grouping rules, and each rule can contain multiple groups.
 - **Group organization**: add, remove, and move students; a student can belong to only one group per rule.
 - **Extra properties**: classes, students, grouping rules, and groups can all carry arbitrary typed extra properties.
-- **Read-only view**: `ReadOnlyClient` offers read-only queries and shares the cache with the writable client.
+- **Read-only view**: `ReadOnlyStudentService` offers read-only queries and shares the cache with the writable client.
 - **Save modes**: manual save (`SaveMode.Manual`) or automatic save (`SaveMode.Auto`).
 - **Concurrency safety**: reads run concurrently, writes are serialized per class, and cached instances stay consistent.
 - **Pluggable storage**: implement `IDataSource` to connect a database, file storage, or an in-memory store.
@@ -77,7 +77,7 @@ public sealed class InMemoryDataSource : IDataSource
 
 > For production, persist serialized data or deep-copied snapshots. Model instances in the client cache may still be mutated by later operations, so a data source should not retain a long-lived reference to the same mutable instance.
 
-### 2. Create a Client and Work with Data
+### 2. Create a StudentService and Work with Data
 
 ```csharp
 using ImmersingStudent;
@@ -85,7 +85,7 @@ using ImmersingStudent.Enums;
 using ImmersingStudent.Models;
 
 var dataSource = new InMemoryDataSource();
-var client = new Client(dataSource, SaveMode.Auto);
+var client = new StudentService(dataSource, SaveMode.Auto);
 
 // Create a class
 var @class = await client.CreateClassAsync(Grade.JuniorSecondGrade, "3班");
@@ -105,10 +105,24 @@ var group = await client.CreateGroupAsync(@class.Guid, rule.Guid, "第一组");
 await client.AddStudentToGroupAsync(
     @class.Guid, rule.Guid, group.Guid, zhang.Guid);
 
-Console.WriteLine(ReadOnlyClient.GetDisplayName(@class)); // 初二年级3班
+Console.WriteLine(ReadOnlyStudentService.GetDisplayName(@class)); // 初二年级3班
 ```
 
-With `SaveMode.Auto`, every change made through `Client` is saved before the method returns. With `SaveMode.Manual`, call `SaveAsync` explicitly.
+With `SaveMode.Auto`, every change made through `StudentService` is saved before the method returns. With `SaveMode.Manual`, call `SaveAsync` explicitly.
+
+#### Dependency Injection
+
+`StudentService` implements `IStudentService`, and its `ReadOnly` view implements `IReadOnlyStudentService`:
+
+```csharp
+services.AddSingleton<IDataSource, InMemoryDataSource>();
+services.AddSingleton<IStudentService>(sp =>
+    new StudentService(sp.GetRequiredService<IDataSource>(), SaveMode.Auto));
+
+// Reuse the same instance so the read-only view shares the cache.
+services.AddSingleton<IReadOnlyStudentService>(sp =>
+    sp.GetRequiredService<IStudentService>().ReadOnly);
+```
 
 ### 3. Query Data
 
@@ -127,10 +141,10 @@ var boys = await client.ReadOnly.SearchStudentsAsync(
     @class.Guid, keyword: "", gender: Gender.Male);
 ```
 
-`ReadOnlyClient` can also be used on its own:
+`ReadOnlyStudentService` can also be used on its own:
 
 ```csharp
-var reader = new ReadOnlyClient(dataSource);
+var reader = new ReadOnlyStudentService(dataSource);
 var allClasses = await reader.GetClassesAsync();
 ```
 
@@ -155,7 +169,7 @@ Every entity has a stable `Guid`. Groups reference students through `StudentGuid
 | Mode | Behavior |
 | --- | --- |
 | `SaveMode.Manual` (default) | Changes are written to the in-memory cache only; data is written to the data source when `SaveAsync()` is called |
-| `SaveMode.Auto` | Every change made through `Client` is saved before the method returns |
+| `SaveMode.Auto` | Every change made through `StudentService` is saved before the method returns |
 
 In manual mode, deleting a class only marks it as pending deletion. It is actually removed from the data source when `SaveAsync()` is called; before that, queries no longer return the class.
 
@@ -208,7 +222,7 @@ await client.SetExtraPropertyAsync(
     "nickname",
     "小张");
 
-var nickname = ReadOnlyClient.GetExtraProperty<string>(
+var nickname = ReadOnlyStudentService.GetExtraProperty<string>(
     zhang.ExtraProperties, "nickname");
 ```
 
@@ -216,7 +230,7 @@ var nickname = ReadOnlyClient.GetExtraProperty<string>(
 
 ## API Overview
 
-### `Client`
+### `StudentService`
 
 | Area | Methods |
 | --- | --- |
@@ -228,7 +242,7 @@ var nickname = ReadOnlyClient.GetExtraProperty<string>(
 | Extra properties | `SetExtraPropertyAsync` |
 | Validation and saving | `ValidateAsync`, `SaveAsync`, `ReloadAsync` |
 
-### `ReadOnlyClient`
+### `ReadOnlyStudentService`
 
 | Method | Description |
 | --- | --- |
@@ -249,7 +263,7 @@ var nickname = ReadOnlyClient.GetExtraProperty<string>(
 1. **Queries return cached references.** Directly mutating a model (for example, `student.Name = "..."`) does not trigger validation or automatic saving. Even with `SaveMode.Auto`, call `SaveAsync()` manually.
 2. **`ReloadAsync` replaces cached instances.** Model references obtained before a reload are no longer synchronized with the client.
 3. **Batch operations are atomic.** If any student in `AddStudentsAsync` is invalid, the whole batch is rejected.
-4. **Concurrency safety.** `Client` and `ReadOnlyClient` can be used concurrently from multiple threads; reads run in parallel, writes lock per class, and changes to the same class do not overwrite each other.
+4. **Concurrency safety.** `StudentService` and `ReadOnlyStudentService` can be used concurrently from multiple threads; reads run in parallel, writes lock per class, and changes to the same class do not overwrite each other.
 5. **Class naming rules.** Duplicate class names are checked within the same grade and are case-sensitive. Student IDs, rule names, and group names are checked case-insensitively.
 
 ## Project Structure
@@ -257,9 +271,9 @@ var nickname = ReadOnlyClient.GetExtraProperty<string>(
 ```text
 ImmersingStudent/
 ├── ImmersingStudent/                 # Core library
-│   ├── Abstractions/IDataSource.cs   # Data source interface
-│   ├── Client.cs                     # Writable client
-│   ├── ReadOnlyClient.cs             # Read-only client
+│   ├── Abstractions/                 # IDataSource, IStudentService, IReadOnlyStudentService
+│   ├── StudentService.cs             # Writable service
+│   ├── ReadOnlyStudentService.cs     # Read-only service
 │   ├── Enums/                        # SaveMode, ExtraPropertyOwner
 │   ├── Exceptions/                   # Domain exceptions and validation errors
 │   ├── Internal/                     # Cache, cloning, async reader-writer lock

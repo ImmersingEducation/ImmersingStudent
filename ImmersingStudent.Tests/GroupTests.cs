@@ -7,7 +7,7 @@ namespace ImmersingStudent.Tests;
 
 public class GroupTests
 {
-    private static async Task<(Client Client, Class Class, GroupingRule Rule)> CreateRuleAsync()
+    private static async Task<(StudentService StudentService, Class Class, GroupingRule Rule)> CreateRuleAsync()
     {
         var (client, _, @class) = await TestData.CreateClientAsync();
         var rule = await client.CreateGroupingRuleAsync(@class.Guid, "值日");
